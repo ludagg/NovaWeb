@@ -234,6 +234,7 @@ fn parse_expr(pair: pest::iterators::Pair<Rule>) -> anyhow::Result<Expr> {
 }
 
 fn parse_suffix(object: Expr, pair: pest::iterators::Pair<Rule>) -> anyhow::Result<Expr> {
+    let suffix_str = pair.as_str().to_string();
     let mut inner = pair.into_inner();
     let first = inner.next().unwrap();
     match first.as_rule() {
@@ -245,7 +246,6 @@ fn parse_suffix(object: Expr, pair: pest::iterators::Pair<Rule>) -> anyhow::Resu
             // This could be either a call or an index
             // Both have expr as the first element
             // We need to check if there are more expr elements or check the pair's string
-            let suffix_str = pair.as_str();
             if suffix_str.starts_with('[') {
                 // This is an index: [expr]
                 Ok(Expr::Index {

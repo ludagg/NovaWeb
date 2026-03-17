@@ -3,7 +3,8 @@ use anyhow::anyhow;
 use std::collections::HashMap;
 use std::fmt;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[serde(untagged)]
 pub enum Value {
     Int(i64),
     Float(f64),
@@ -11,10 +12,12 @@ pub enum Value {
     String(String),
     List(Vec<Value>),
     Map(HashMap<String, Value>),
+    #[serde(skip)]
     Function {
         params: Vec<String>,
         body: Vec<Stmt>,
     },
+    #[serde(skip)]
     Builtin(fn(Vec<Value>) -> Value),
     Null,
 }

@@ -28,9 +28,9 @@ pub async fn serve(host: String, port: u16, pages_dir: PathBuf, static_dir: Path
     });
 
     let app = Router::new()
-        .route("/{*path}", handle_request)
+        .route("/{*path}", get(handle_request).post(handle_request).put(handle_request).delete(handle_request))
         .nest_service("/static", ServeDir::new(state.static_dir.clone()))
-        .with_state(state);
+        .with_state(state.clone());
 
     let addr = format!("{}:{}", host, port);
     println!("NovaWeb server listening on {}", addr);
@@ -46,7 +46,7 @@ async fn handle_request(
     path: Path<String>,
     method: axum::http::Method,
     headers: HeaderMap,
-    uri: axum::http::Uri,
+    _uri: axum::http::Uri,
     query: axum::extract::Query<HashMap<String, String>>,
 ) -> Response {
     let request_path = path.0;
@@ -85,15 +85,11 @@ async fn handle_request(
                 Value::Bool(b) => (StatusCode::OK, b.to_string()).into_response(),
                 Value::List(l) => {
                     let json = serde_json::to_string(&l).unwrap_or_default();
-                    (StatusCode::OK, json)
-                        .into_response()
-                        .typed_header(HeaderValue::from_static("application/json"))
+                    (StatusCode::OK, [(axum::http::header::CONTENT_TYPE, "application/json")], json).into_response()
                 }
                 Value::Map(m) => {
                     let json = serde_json::to_string(&m).unwrap_or_default();
-                    (StatusCode::OK, json)
-                        .into_response()
-                        .typed_header(HeaderValue::from_static("application/json"))
+                    (StatusCode::OK, [(axum::http::header::CONTENT_TYPE, "application/json")], json).into_response()
                 }
                 _ => (StatusCode::OK, result.to_string()).into_response(),
             },
@@ -156,8 +152,8 @@ fn find_dynamic_file(base_dir: &PathBuf, path: &str) -> Option<PathBuf> {
         }
 
         // Try to find a dynamic segment [param]
-        let found_dir = false;
-        let found_file = false;
+        let mut found_dir = false;
+        let _found_file = false;
 
         if let Ok(entries) = fs::read_dir(&current_path) {
             for entry in entries.flatten() {
@@ -231,7 +227,7 @@ fn execute_novaw_file(
 fn extract_route_params(file_path: &PathBuf, request_path: &str) -> HashMap<String, Value> {
     let mut params = HashMap::new();
 
-    let file_str = file_path.to_string_lossy();
+    let _file_str = file_path.to_string_lossy();
     let request_segments: Vec<&str> = request_path.split('/').filter(|s| !s.is_empty()).collect();
 
     // Find dynamic segments in the file path
