@@ -10,27 +10,27 @@ node = {
 
 text = @{ !("{{" | "{%") ~ ANY }
 
-expr_node = { "{{" ~ ~WHITESPACE ~ expr ~ ~WHITESPACE ~ "}}" }
+expr_node = { "{{" ~ expr ~ "}}" }
 
 if_node = {
-    "{%" ~ ~WHITESPACE ~ "if" ~ ~WHITESPACE ~ expr ~ ~WHITESPACE ~ "%}"
+    "{%" ~ "if" ~ expr ~ "%}"
     ~ (node | text)*
     ~ (else_branch)?
-    ~ "{%" ~ ~WHITESPACE ~ "endif" ~ ~WHITESPACE ~ "%}"
+    ~ "{%" ~ "endif" ~ "%}"
 }
 
 else_branch = {
-    "{%" ~ ~WHITESPACE ~ "else" ~ ~WHITESPACE ~ "%}" ~ (node | text)*
+    "{%" ~ "else" ~ "%}" ~ (node | text)*
 }
 
 for_node = {
-    "{%" ~ ~WHITESPACE ~ "for" ~ ~WHITESPACE ~ ident ~ ~WHITESPACE ~ "in" ~ ~WHITESPACE ~ expr ~ ~WHITESPACE ~ "%}"
+    "{%" ~ "for" ~ ident ~ "in" ~ expr ~ "%}"
     ~ (node | text)*
-    ~ "{%" ~ ~WHITESPACE ~ "endfor" ~ ~WHITESPACE ~ "%}"
+    ~ "{%" ~ "endfor" ~ "%}"
 }
 
 // Use the same expression grammar as the main language, but we'll import it
-expr = { SOI ~ ~WHITESPACE ~ (primary ~ (suffix ~ (suffix)*)? ~ (bin_op ~ ~WHITESPACE ~ primary ~ (suffix ~ (suffix)*)?)*)? ~ ~WHITESPACE ~ EOI }
+expr = { SOI ~ (primary ~ (suffix ~ (suffix)*)? ~ (bin_op ~ primary ~ (suffix ~ (suffix)*)?)*)? ~ EOI }
 
 suffix = {
     "." ~ ident

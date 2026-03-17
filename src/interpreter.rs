@@ -188,20 +188,15 @@ fn db_query(args: Vec<Value>) -> Value {
 
             match conn.prepare(sql) {
                 Ok(mut stmt) => {
-                    let rows = match stmt.query(params_refs.as_slice()) {
+                    let mut rows = match stmt.query(params_refs.as_slice()) {
                         Ok(rows) => rows,
                         Err(_) => return Value::Null,
                     };
 
                     let mut results = Vec::new();
-                    for row_result in rows {
-                        match row_result {
-                            Ok(row) => {
-                                if let Ok(val) = row_to_value(&row) {
-                                    results.push(val);
-                                }
-                            }
-                            Err(_) => continue,
+                    while let Ok(Some(row)) = rows.next() {
+                        if let Ok(val) = row_to_value(&row) {
+                            results.push(val);
                         }
                     }
                     Value::List(results)
@@ -364,7 +359,7 @@ impl Interpreter {
         result
     }
 
-    fn evaluate(&mut self, expr: &Expr) -> anyhow::Result<Value> {
+    pub fn evaluate(&mut self, expr: &Expr) -> anyhow::Result<Value> {
         match expr {
             Expr::Literal(v) => Ok(v.clone()),
             Expr::Ident(name) => self

@@ -1,0 +1,499 @@
+    Checking nova-web v0.1.0 (/app)
+error: proc-macro derive panicked
+ --> src/template.rs:9:10
+  |
+9 | #[derive(Parser)]
+  |          ^^^^^^
+  |
+  = help: message: error parsing
+            --> 13:22
+             |
+          13 | expr_node = { "{{" ~ ~WHITESPACE ~ expr ~ ~WHITESPACE ~ "}}" }
+             |                      ^---
+             |
+             = expected term
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+  --> src/template.rs:30:39
+   |
+30 |     let pairs = TemplateParser::parse(Rule::template, input)?;
+   |                                       ^^^^ use of undeclared type `Rule`
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+  --> src/template.rs:35:13
+   |
+35 |             Rule::template => {
+   |             ^^^^ use of undeclared type `Rule`
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+  --> src/template.rs:38:25
+   |
+38 |                         Rule::node => {
+   |                         ^^^^ use of undeclared type `Rule`
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+  --> src/template.rs:41:25
+   |
+41 |                         Rule::text => {
+   |                         ^^^^ use of undeclared type `Rule`
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+  --> src/template.rs:48:13
+   |
+48 |             Rule::EOI => (),
+   |             ^^^^ use of undeclared type `Rule`
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0425]: cannot find type `Rule` in this scope
+  --> src/template.rs:56:43
+   |
+56 | ...st::iterators::Pair<Rule>) -> anyhow::Result<TemplateNode> {
+   |                        ^^^^ not found in this scope
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+  --> src/template.rs:58:9
+   |
+58 |         Rule::expr_node => {
+   |         ^^^^ use of undeclared type `Rule`
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+  --> src/template.rs:63:9
+   |
+63 |         Rule::if_node => {
+   |         ^^^^ use of undeclared type `Rule`
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+  --> src/template.rs:72:21
+   |
+72 |                     Rule::node => {
+   |                     ^^^^ use of undeclared type `Rule`
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+  --> src/template.rs:76:21
+   |
+76 |                     Rule::text => {
+   |                     ^^^^ use of undeclared type `Rule`
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+  --> src/template.rs:79:21
+   |
+79 |                     Rule::else_branch => {
+   |                     ^^^^ use of undeclared type `Rule`
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+  --> src/template.rs:82:33
+   |
+82 | ...                   Rule::node => {
+   |                       ^^^^ use of undeclared type `Rule`
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+  --> src/template.rs:86:33
+   |
+86 | ...                   Rule::text => {
+   |                       ^^^^ use of undeclared type `Rule`
+   |
+help: consider importing this enum
+   |
+ 1 + use crate::parser::Rule;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+   --> src/template.rs:103:9
+    |
+103 |         Rule::for_node => {
+    |         ^^^^ use of undeclared type `Rule`
+    |
+help: consider importing this enum
+    |
+  1 + use crate::parser::Rule;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+   --> src/template.rs:111:21
+    |
+111 |                     Rule::node => {
+    |                     ^^^^ use of undeclared type `Rule`
+    |
+help: consider importing this enum
+    |
+  1 + use crate::parser::Rule;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Rule`
+   --> src/template.rs:114:21
+    |
+114 |                     Rule::text => {
+    |                     ^^^^ use of undeclared type `Rule`
+    |
+help: consider importing this enum
+    |
+  1 + use crate::parser::Rule;
+    |
+
+error[E0425]: cannot find type `Rule` in this scope
+   --> src/template.rs:127:52
+    |
+127 | ...st::iterators::Pair<Rule>) -> anyhow::Result<Expr> {
+    |                        ^^^^ not found in this scope
+    |
+help: consider importing this enum
+    |
+  1 + use crate::parser::Rule;
+    |
+
+warning: unused import: `params`
+ --> src/interpreter.rs:5:28
+  |
+5 | use rusqlite::{Connection, params, types::ToSql};
+  |                            ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `anyhow::anyhow`
+ --> src/server.rs:4:5
+  |
+4 | use anyhow::anyhow;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused imports: `Request as AxumRequest`, `body::Body`, and `routing::get`
+  --> src/server.rs:6:5
+   |
+ 6 |     body::Body,
+   |     ^^^^^^^^^^
+ 7 |     extract::{Path, Request as AxumRequest, State},
+   |                     ^^^^^^^^^^^^^^^^^^^^^^
+...
+10 |     routing::get,
+   |     ^^^^^^^^^^^^
+
+warning: unused import: `anyhow::anyhow`
+ --> src/template.rs:4:5
+  |
+4 | use anyhow::anyhow;
+  |     ^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+   --> src/server.rs:31:28
+    |
+ 31 |         .route("/{*path}", handle_request)
+    |          -----             ^^^^^^^^^^^^^^ expected `MethodRouter<_>`, found fn item
+    |          |
+    |          arguments to this method are incorrect
+    |
+    = note: expected struct `MethodRouter<_>`
+              found fn item `fn(..., ..., ..., ..., ..., ...) -> ... {handle_request}`
+note: method defined here
+   --> /home/jules/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/mod.rs:164:12
+    |
+164 |     pub fn route(self, path: &str, method_router: MethodRouter<S>) -> S...
+    |            ^^^^^
+    = note: the full name for the type has been written to '/app/target/debug/deps/novaw-31d72d0b85dafe3b.long-type-10423166374896667957.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `value::Value: serde::Serialize` is not satisfied
+    --> src/server.rs:87:54
+     |
+  87 | ...      let json = serde_json::to_string(&l).unwrap_or_default();
+     |                     --------------------- ^^ unsatisfied trait bound
+     |                     |
+     |                     required by a bound introduced by this call
+     |
+help: the trait `serde_core::ser::Serialize` is not implemented for `value::Value`
+    --> src/value.rs:7:1
+     |
+   7 | pub enum Value {
+     | ^^^^^^^^^^^^^^
+     = note: for local types consider adding `#[derive(serde::Serialize)]` to your `value::Value` type
+     = note: for types from other crates check whether the crate offers a `serde` feature flag
+     = help: the following other types implement trait `serde_core::ser::Serialize`:
+               &'a T
+               &'a mut T
+               ()
+               (T,)
+               (T0, T1)
+               (T0, T1, T2)
+               (T0, T1, T2, T3)
+               (T0, T1, T2, T3, T4)
+             and 130 others
+     = note: required for `Vec<value::Value>` to implement `serde_core::ser::Serialize`
+note: required by a bound in `serde_json::to_string`
+    --> /home/jules/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.149/src/ser.rs:2247:17
+     |
+2245 | pub fn to_string<T>(value: &T) -> Result<String>
+     |        --------- required by a bound in this function
+2246 | where
+2247 |     T: ?Sized + Serialize,
+     |                 ^^^^^^^^^ required by this bound in `to_string`
+     = note: the full name for the type has been written to '/app/target/debug/deps/novaw-31d72d0b85dafe3b.long-type-2285098392888318622.txt'
+     = note: consider using `--verbose` to print the full type name to the console
+
+error[E0599]: no method named `typed_header` found for struct `Response<T>` in the current scope
+  --> src/server.rs:90:26
+   |
+88 | / ...   (StatusCode::OK, json)
+89 | | ...       .into_response()
+90 | | ...       .typed_header(HeaderValue::from_static("application/json"))
+   | |___________-^^^^^^^^^^^^
+   |
+help: there is a method `type_id` with a similar name, but with different arguments
+  --> /rustc/4a4ef493e3a1488c6e321570238084b38948f6db/library/core/src/any.rs:134:4
+
+error[E0277]: the trait bound `value::Value: serde::Serialize` is not satisfied
+    --> src/server.rs:93:54
+     |
+  93 | ...      let json = serde_json::to_string(&m).unwrap_or_default();
+     |                     --------------------- ^^ unsatisfied trait bound
+     |                     |
+     |                     required by a bound introduced by this call
+     |
+help: the trait `serde_core::ser::Serialize` is not implemented for `value::Value`
+    --> src/value.rs:7:1
+     |
+   7 | pub enum Value {
+     | ^^^^^^^^^^^^^^
+     = note: for local types consider adding `#[derive(serde::Serialize)]` to your `value::Value` type
+     = note: for types from other crates check whether the crate offers a `serde` feature flag
+     = help: the following other types implement trait `serde_core::ser::Serialize`:
+               &'a T
+               &'a mut T
+               ()
+               (T,)
+               (T0, T1)
+               (T0, T1, T2)
+               (T0, T1, T2, T3)
+               (T0, T1, T2, T3, T4)
+             and 130 others
+     = note: required for `HashMap<std::string::String, value::Value>` to implement `serde_core::ser::Serialize`
+note: required by a bound in `serde_json::to_string`
+    --> /home/jules/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.149/src/ser.rs:2247:17
+     |
+2245 | pub fn to_string<T>(value: &T) -> Result<String>
+     |        --------- required by a bound in this function
+2246 | where
+2247 |     T: ?Sized + Serialize,
+     |                 ^^^^^^^^^ required by this bound in `to_string`
+     = note: the full name for the type has been written to '/app/target/debug/deps/novaw-31d72d0b85dafe3b.long-type-2285098392888318622.txt'
+     = note: consider using `--verbose` to print the full type name to the console
+
+error[E0599]: no method named `typed_header` found for struct `Response<T>` in the current scope
+  --> src/server.rs:96:26
+   |
+94 | / ...   (StatusCode::OK, json)
+95 | | ...       .into_response()
+96 | | ...       .typed_header(HeaderValue::from_static("application/json"))
+   | |___________-^^^^^^^^^^^^
+   |
+help: there is a method `type_id` with a similar name, but with different arguments
+  --> /rustc/4a4ef493e3a1488c6e321570238084b38948f6db/library/core/src/any.rs:134:4
+
+error[E0277]: `Rows<'_>` is not an iterator
+   --> src/interpreter.rs:197:39
+    |
+197 |                     for row_result in rows {
+    |                                       ^^^^ `Rows<'_>` is not an iterator
+    |
+    = help: the trait `Iterator` is not implemented for `Rows<'_>`
+    = note: required for `Rows<'_>` to implement `IntoIterator`
+
+error[E0599]: no function or associated item named `parse` found for struct `TemplateParser` in the current scope
+  --> src/template.rs:30:33
+   |
+11 | pub struct TemplateParser;
+   | ------------------------- function or associated item `parse` not found for this struct
+...
+30 |     let pairs = TemplateParser::parse(Rule::template, input)?;
+   |                                 ^^^^^ function or associated item not found in `TemplateParser`
+   |
+   = help: items from traits can only be used if the trait is implemented and in scope
+   = note: the following traits define an item `parse`, perhaps you need to implement one of them:
+           candidate #1: `TypedValueParser`
+           candidate #2: `clap::Parser`
+           candidate #3: `pest::Parser`
+
+error[E0282]: type annotations needed
+  --> src/template.rs:34:15
+   |
+34 |         match pair.as_rule() {
+   |               ^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+  --> src/template.rs:37:27
+   |
+37 |                     match inner_pair.as_rule() {
+   |                           ^^^^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+  --> src/template.rs:71:23
+   |
+71 |                 match node_pair.as_rule() {
+   |                       ^^^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+  --> src/template.rs:81:35
+   |
+81 | ...                   match else_node_pair.as_rule() {
+   |                             ^^^^^^^^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/template.rs:110:23
+    |
+110 |                 match node_pair.as_rule() {
+    |                       ^^^^^^^^^ cannot infer type
+
+error[E0624]: method `evaluate` is private
+   --> src/template.rs:160:50
+    |
+160 |         TemplateNode::Expr(expr) => match interp.evaluate(expr) {
+    |                                                  ^^^^^^^^ private method
+    |
+   ::: src/interpreter.rs:367:5
+    |
+367 |     fn evaluate(&mut self, expr: &Expr) -> anyhow::Result<Value> {
+    |     ------------------------------------------------------------ private method defined here
+
+error[E0282]: type annotations needed
+   --> src/template.rs:161:26
+    |
+161 |             Ok(value) => value.to_string(),
+    |                          ^^^^^ cannot infer type
+
+error[E0624]: method `evaluate` is private
+   --> src/template.rs:169:26
+    |
+169 |             match interp.evaluate(condition) {
+    |                          ^^^^^^^^ private method
+    |
+   ::: src/interpreter.rs:367:5
+    |
+367 |     fn evaluate(&mut self, expr: &Expr) -> anyhow::Result<Value> {
+    |     ------------------------------------------------------------ private method defined here
+
+error[E0282]: type annotations needed
+   --> src/template.rs:170:30
+    |
+170 | ...   Ok(value) if value.is_truthy() => render_nodes(then_nodes, &HashM...
+    |                    ^^^^^ cannot infer type
+
+error[E0624]: method `evaluate` is private
+   --> src/template.rs:179:26
+    |
+179 |             match interp.evaluate(iterable) {
+    |                          ^^^^^^^^ private method
+    |
+   ::: src/interpreter.rs:367:5
+    |
+367 |     fn evaluate(&mut self, expr: &Expr) -> anyhow::Result<Value> {
+    |     ------------------------------------------------------------ private method defined here
+
+error[E0382]: borrow of moved value: `pair`
+   --> src/parser.rs:248:30
+    |
+236 | fn parse_suffix(object: Expr, pair: pest::iterators::Pair<Rule>) -> any...
+    |                               ---- move occurs because `pair` has type `Pair<'_, Rule>`, which does not implement the `Copy` trait
+237 |     let mut inner = pair.into_inner();
+    |                          ------------ `pair` moved due to this method call
+...
+248 |             let suffix_str = pair.as_str();
+    |                              ^^^^ value borrowed here after move
+    |
+note: `Pair::<'i, R>::into_inner` takes ownership of the receiver `self`, which moves `pair`
+   --> /home/jules/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pest-2.8.6/src/iterators/pair.rs:241:23
+    |
+241 |     pub fn into_inner(self) -> Pairs<'i, R> {
+    |                       ^^^^
+help: you can `clone` the value and consume it, but this might not be your desired behavior
+    |
+237 |     let mut inner = pair.clone().into_inner();
+    |                         ++++++++
+
+error[E0384]: cannot assign twice to immutable variable `found_dir`
+   --> src/server.rs:171:25
+    |
+159 |         let found_dir = false;
+    |             --------- first assignment to `found_dir`
+...
+171 |                         found_dir = true;
+    |                         ^^^^^^^^^^^^^^^^ cannot assign twice to immutable variable
+    |
+help: consider making this binding mutable
+    |
+159 |         let mut found_dir = false;
+    |             +++
+
+warning: unused variable: `found_file`
+   --> src/server.rs:160:13
+    |
+160 |         let found_file = false;
+    |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_found_file`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `file_str`
+   --> src/server.rs:234:9
+    |
+234 |     let file_str = file_path.to_string_lossy();
+    |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_file_str`
+
+Some errors have detailed explanations: E0277, E0282, E0308, E0382, E0384, E0425, E0433, E0599, E0624.
+For more information about an error, try `rustc --explain E0277`.
+warning: `nova-web` (bin "novaw") generated 6 warnings
+error: could not compile `nova-web` (bin "novaw") due to 37 previous errors; 6 warnings emitted
