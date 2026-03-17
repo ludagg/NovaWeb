@@ -2,13 +2,17 @@ use crate::ast::{Expr, Stmt};
 use crate::environment::Environment;
 use crate::value::Value;
 use anyhow::anyhow;
+use rusqlite::{Connection, params, types::ToSql};
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Mutex;
 
 pub struct Interpreter {
     pub globals: Rc<RefCell<Environment>>,
     pub environment: Rc<RefCell<Environment>>,
 }
+
+static DB_CONN: Mutex<Option<Connection>> = Mutex::new(None);
 
 pub enum ControlFlow {
     None,
@@ -95,8 +99,155 @@ impl Interpreter {
                 }
             }),
         );
-    }
 
+        // Register database functions
+        let mut db_map = std::collections::HashMap::new();
+        db_map.insert(
+            "connect".to_string(),
+            Value::Builtin(db_connect),
+        );
+        db_map.insert(
+            "query".to_string(),
+            Value::Builtin(db_query),
+        );
+        db_map.insert(
+            "execute".to_string(),
+            Value::Builtin(db_execute),
+        );
+        self.globals.borrow_mut().define("db".to_string(), Value::Map(db_map));
+    }
+}
+
+// Helper function to convert Value to rusqlite type
+fn value_to_sqlite(value: &Value) -> Box<dyn ToSql> {
+    match value {
+        Value::Null => Box::new(Option::<i64>::None),
+        Value::Int(i) => Box::new(*i),
+        Value::Float(f) => Box::new(*f),
+        Value::String(s) => Box::new(s.clone()),
+        Value::Bool(b) => Box::new(*b),
+        _ => Box::new(Option::<i64>::None),
+    }
+}
+
+// Helper function to convert rusqlite row to Value::Map
+fn row_to_value(row: &rusqlite::Row) -> anyhow::Result<Value> {
+    let mut map = std::collections::HashMap::new();
+    for i in 0..row.as_ref().column_count() {
+        let name = row.as_ref().column_name(i)?.to_string();
+        let value = match row.get::<_, rusqlite::types::Value>(i) {
+            Ok(rusqlite::types::Value::Null) => Value::Null,
+            Ok(rusqlite::types::Value::Integer(i)) => Value::Int(i),
+            Ok(rusqlite::types::Value::Real(f)) => Value::Float(f),
+            Ok(rusqlite::types::Value::Text(s)) => Value::String(s),
+            Ok(rusqlite::types::Value::Blob(b)) => Value::String(format!("<blob: {} bytes>", b.len())),
+            Err(_) => Value::Null,
+        };
+        map.insert(name, value);
+    }
+    Ok(Value::Map(map))
+}
+
+// Database built-in function: db.connect(url)
+fn db_connect(args: Vec<Value>) -> Value {
+    if args.is_empty() {
+        return Value::Null;
+    }
+    if let Value::String(url) = &args[0] {
+        match Connection::open(url) {
+            Ok(conn) => {
+                let mut db_guard = DB_CONN.lock().unwrap();
+                *db_guard = Some(conn);
+                Value::Bool(true)
+            }
+            Err(_) => Value::Null,
+        }
+    } else {
+        Value::Null
+    }
+}
+
+// Database built-in function: db.query(sql, params)
+fn db_query(args: Vec<Value>) -> Value {
+    if args.is_empty() {
+        return Value::Null;
+    }
+    if let Value::String(sql) = &args[0] {
+        let params: Vec<Box<dyn ToSql>> = if args.len() > 1 {
+            match &args[1] {
+                Value::List(list) => list.iter().map(value_to_sqlite).collect(),
+                _ => vec![value_to_sqlite(&args[1])],
+            }
+        } else {
+            Vec::new()
+        };
+
+        let db_guard = DB_CONN.lock().unwrap();
+        if let Some(conn) = db_guard.as_ref() {
+            let params_refs: Vec<&dyn ToSql> = params.iter().map(|p| p.as_ref()).collect();
+
+            match conn.prepare(sql) {
+                Ok(mut stmt) => {
+                    let rows = match stmt.query(params_refs.as_slice()) {
+                        Ok(rows) => rows,
+                        Err(_) => return Value::Null,
+                    };
+
+                    let mut results = Vec::new();
+                    for row_result in rows {
+                        match row_result {
+                            Ok(row) => {
+                                if let Ok(val) = row_to_value(&row) {
+                                    results.push(val);
+                                }
+                            }
+                            Err(_) => continue,
+                        }
+                    }
+                    Value::List(results)
+                }
+                Err(_) => Value::Null,
+            }
+        } else {
+            Value::Null
+        }
+    } else {
+        Value::Null
+    }
+}
+
+// Database built-in function: db.execute(sql, params)
+fn db_execute(args: Vec<Value>) -> Value {
+    if args.is_empty() {
+        return Value::Null;
+    }
+    if let Value::String(sql) = &args[0] {
+        let params: Vec<Box<dyn ToSql>> = if args.len() > 1 {
+            match &args[1] {
+                Value::List(list) => list.iter().map(value_to_sqlite).collect(),
+                _ => vec![value_to_sqlite(&args[1])],
+            }
+        } else {
+            Vec::new()
+        };
+
+        let db_guard = DB_CONN.lock().unwrap();
+        if let Some(conn) = db_guard.as_ref() {
+            let params_refs: Vec<&dyn ToSql> = params.iter().map(|p| p.as_ref()).collect();
+
+            match conn.execute(sql, params_refs.as_slice()) {
+                Ok(rows_affected) => Value::Int(rows_affected as i64),
+                Err(_) => Value::Null,
+            }
+        } else {
+            Value::Null
+        }
+    } else {
+        Value::Null
+    }
+}
+
+impl Interpreter {
     pub fn interpret(&mut self, statements: &[Stmt]) -> anyhow::Result<Value> {
         let mut result = Value::Null;
         for stmt in statements {
@@ -279,18 +430,14 @@ impl Interpreter {
                 }
             }
             Expr::Call { callee, args } => {
-                let function = self
-                    .environment
-                    .borrow()
-                    .get(callee)
-                    .ok_or_else(|| anyhow!("Undefined function '{}'", callee))?;
+                let callee_value = self.evaluate(callee)?;
 
                 let mut evaluated_args = Vec::new();
                 for arg in args {
                     evaluated_args.push(self.evaluate(arg)?);
                 }
 
-                match function {
+                match callee_value {
                     Value::Function { params, body } => {
                         if params.len() != evaluated_args.len() {
                             return Err(anyhow!(
@@ -315,7 +462,7 @@ impl Interpreter {
                         }
                     }
                     Value::Builtin(f) => Ok(f(evaluated_args)),
-                    _ => Err(anyhow!("'{}' is not a function", callee)),
+                    _ => Err(anyhow!("Value is not callable")),
                 }
             }
             Expr::List(elements) => {
