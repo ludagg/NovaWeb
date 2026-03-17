@@ -1,0 +1,35 @@
+let title = "NovaWeb Test";
+let user = "Alice";
+let age = 30;
+
+fn greet(name) {
+    print("Greeting", name);
+    return "Hello, " + name;
+}
+
+let message = greet(user);
+print(message);
+
+let ctx = {
+    "title": title,
+    "user": user,
+    "age": age
+};
+
+let template = read_file("template.html");
+let rendered = render(template, ctx);
+print("Rendered Template:");
+print(rendered);
+
+print("Counting to 5:");
+let i = 1;
+while i <= 5 {
+    print(i);
+    i = i + 1;
+}
+
+let items = [1, 2, 3, 4, 5];
+print("Iterating over list:");
+for x in items {
+    print("Item:", x);
+}
