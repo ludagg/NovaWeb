@@ -14,7 +14,7 @@ pub enum Expr {
         expr: Box<Expr>,
     },
     Call {
-        callee: String,
+        callee: Box<Expr>,
         args: Vec<Expr>,
     },
     List(Vec<Expr>),

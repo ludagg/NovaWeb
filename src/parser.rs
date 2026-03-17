@@ -241,11 +241,39 @@ fn parse_suffix(object: Expr, pair: pest::iterators::Pair<Rule>) -> anyhow::Resu
             object: Box::new(object),
             name: first.as_str().to_string(),
         }),
-        Rule::expr => Ok(Expr::Index {
-            object: Box::new(object),
-            index: Box::new(parse_expr(first)?),
-        }),
-        _ => unreachable!("{:?}", first.as_rule()),
+        Rule::expr => {
+            // This could be either a call or an index
+            // Both have expr as the first element
+            // We need to check if there are more expr elements or check the pair's string
+            let suffix_str = pair.as_str();
+            if suffix_str.starts_with('[') {
+                // This is an index: [expr]
+                Ok(Expr::Index {
+                    object: Box::new(object),
+                    index: Box::new(parse_expr(first)?),
+                })
+            } else {
+                // This is a call: (expr, expr, ...)
+                let mut args = Vec::new();
+                args.push(parse_expr(first)?);
+                for arg_pair in inner {
+                    if arg_pair.as_rule() == Rule::expr {
+                        args.push(parse_expr(arg_pair)?);
+                    }
+                }
+                Ok(Expr::Call {
+                    callee: Box::new(object),
+                    args,
+                })
+            }
+        }
+        _ => {
+            // Empty parentheses: obj()
+            Ok(Expr::Call {
+                callee: Box::new(object),
+                args: Vec::new(),
+            })
+        }
     }
 }
 
@@ -254,15 +282,6 @@ fn parse_primary(pair: pest::iterators::Pair<Rule>) -> anyhow::Result<Expr> {
         Rule::primary => parse_primary(pair.into_inner().next().unwrap()),
         Rule::literal => parse_literal(pair.into_inner().next().unwrap()),
         Rule::ident => Ok(Expr::Ident(pair.as_str().to_string())),
-        Rule::call => {
-            let mut inner = pair.into_inner();
-            let callee = inner.next().unwrap().as_str().to_string();
-            let mut args = Vec::new();
-            for arg_pair in inner {
-                args.push(parse_expr(arg_pair)?);
-            }
-            Ok(Expr::Call { callee, args })
-        }
         Rule::expr => parse_expr(pair),
         _ => unreachable!("{:?}", pair.as_rule()),
     }

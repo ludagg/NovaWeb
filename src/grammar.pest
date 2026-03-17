@@ -30,11 +30,11 @@ expr = { prefix? ~ primary ~ (suffix ~ (suffix)*)? ~ (bin_op ~ prefix? ~ primary
 suffix = {
     "." ~ ident
     | "[" ~ expr ~ "]"
+    | "(" ~ (expr ~ ("," ~ expr)*)? ~ ")"
 }
 
 primary = {
     literal
-    | call
     | ident
     | "(" ~ expr ~ ")"
 }
@@ -67,5 +67,3 @@ map_pair = { (string | ident) ~ ":" ~ expr }
 null = { "null" }
 
 ident = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
-
-call = { ident ~ "(" ~ (expr ~ ("," ~ expr)*)? ~ ")" }
