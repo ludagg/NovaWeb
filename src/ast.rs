@@ -19,6 +19,14 @@ pub enum Expr {
     },
     List(Vec<Expr>),
     Map(Vec<(Expr, Expr)>),
+    Get {
+        object: Box<Expr>,
+        name: String,
+    },
+    Index {
+        object: Box<Expr>,
+        index: Box<Expr>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

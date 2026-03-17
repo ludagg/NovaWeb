@@ -1,0 +1,69 @@
+WHITESPACE = _{ " " | "\t" | "\r" }
+
+template = { SOI ~ (node | text)* ~ EOI }
+
+node = {
+    expr_node
+    | if_node
+    | for_node
+}
+
+text = @{ !("{{" | "{%") ~ ANY }
+
+expr_node = { "{{" ~ ~WHITESPACE ~ expr ~ ~WHITESPACE ~ "}}" }
+
+if_node = {
+    "{%" ~ ~WHITESPACE ~ "if" ~ ~WHITESPACE ~ expr ~ ~WHITESPACE ~ "%}"
+    ~ (node | text)*
+    ~ (else_branch)?
+    ~ "{%" ~ ~WHITESPACE ~ "endif" ~ ~WHITESPACE ~ "%}"
+}
+
+else_branch = {
+    "{%" ~ ~WHITESPACE ~ "else" ~ ~WHITESPACE ~ "%}" ~ (node | text)*
+}
+
+for_node = {
+    "{%" ~ ~WHITESPACE ~ "for" ~ ~WHITESPACE ~ ident ~ ~WHITESPACE ~ "in" ~ ~WHITESPACE ~ expr ~ ~WHITESPACE ~ "%}"
+    ~ (node | text)*
+    ~ "{%" ~ ~WHITESPACE ~ "endfor" ~ ~WHITESPACE ~ "%}"
+}
+
+// Use the same expression grammar as the main language, but we'll import it
+expr = { SOI ~ ~WHITESPACE ~ (primary ~ (suffix ~ (suffix)*)? ~ (bin_op ~ ~WHITESPACE ~ primary ~ (suffix ~ (suffix)*)?)*)? ~ ~WHITESPACE ~ EOI }
+
+suffix = {
+    "." ~ ident
+    | "[" ~ expr ~ "]"
+}
+
+primary = {
+    literal
+    | ident
+    | "(" ~ expr ~ ")"
+}
+
+bin_op = { "==" | "!=" | "<=" | ">=" | "&&" | "||" | "+" | "-" | "*" | "/" | "%" | "<" | ">" }
+
+literal = {
+    float
+    | int
+    | bool
+    | string
+    | list
+    | null
+}
+
+int = @{ ASCII_DIGIT+ }
+float = @{ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* }
+bool = { "true" | "false" }
+string = ${ "\"" ~ inner_str ~ "\"" }
+inner_str = @{ (!("\"" | "\\") ~ ANY)* ~ (escape ~ inner_str)? }
+escape = @{ "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | unicode) }
+unicode = @{ "u" ~ ASCII_HEX_DIGIT{4} }
+
+list = { "[" ~ (expr ~ ("," ~ expr)*)? ~ "]" }
+
+null = { "null" }
+
+ident = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
