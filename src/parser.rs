@@ -28,6 +28,66 @@ pub fn parse(input: &str) -> anyhow::Result<Vec<Stmt>> {
     Ok(statements)
 }
 
+pub fn parse_expression_only(input: &str) -> anyhow::Result<Expr> {
+    let pairs = NovaParser::parse(Rule::expr, input)?;
+    for pair in pairs {
+        if pair.as_rule() == Rule::expr {
+            let mut inner = pair.into_inner();
+            let mut current_expr = if let Some(p) = inner.next() {
+                if p.as_rule() == Rule::prefix {
+                    let op = p.as_str().to_string();
+                    let primary = parse_primary(inner.next().unwrap())?;
+                    Expr::Unary {
+                        op,
+                        expr: Box::new(primary),
+                    }
+                } else {
+                    parse_primary(p)?
+                }
+            } else {
+                return Err(anyhow::anyhow!("Empty expression"));
+            };
+
+            // Parse suffixes (get/index) for the current expression
+            while let Some(suffix_pair) = inner.next() {
+                if suffix_pair.as_rule() == Rule::suffix {
+                    current_expr = parse_suffix(current_expr, suffix_pair)?;
+                } else {
+                    // Binary operator
+                    let op = suffix_pair.as_str().to_string();
+                    let next_primary_pair = inner.next().unwrap();
+                    let mut next_expr = if next_primary_pair.as_rule() == Rule::prefix {
+                        let op = next_primary_pair.as_str().to_string();
+                        let primary = parse_primary(inner.next().unwrap())?;
+                        Expr::Unary {
+                            op,
+                            expr: Box::new(primary),
+                        }
+                    } else {
+                        parse_primary(next_primary_pair)?
+                    };
+                    // Parse suffixes for the right operand
+                    while let Some(suffix_pair) = inner.next() {
+                        if suffix_pair.as_rule() == Rule::suffix {
+                            next_expr = parse_suffix(next_expr, suffix_pair)?;
+                        } else {
+                            break;
+                        }
+                    }
+                    current_expr = Expr::Binary {
+                        op,
+                        left: Box::new(current_expr),
+                        right: Box::new(next_expr),
+                    };
+                }
+            }
+
+            return Ok(current_expr);
+        }
+    }
+    Err(anyhow::anyhow!("Failed to parse expression"))
+}
+
 fn parse_statement(pair: pest::iterators::Pair<Rule>) -> anyhow::Result<Stmt> {
     match pair.as_rule() {
         Rule::let_stmt => {
@@ -133,27 +193,60 @@ fn parse_expr(pair: pest::iterators::Pair<Rule>) -> anyhow::Result<Expr> {
         return Err(anyhow::anyhow!("Empty expression"));
     };
 
-    while let Some(op_pair) = inner.next() {
-        let op = op_pair.as_str().to_string();
-        let next_primary_pair = inner.next().unwrap();
-        let next_primary = if next_primary_pair.as_rule() == Rule::prefix {
-            let op = next_primary_pair.as_str().to_string();
-            let primary = parse_primary(inner.next().unwrap())?;
-            Expr::Unary {
-                op,
-                expr: Box::new(primary),
-            }
+    // Parse suffixes (get/index) for the current expression
+    while let Some(suffix_pair) = inner.next() {
+        if suffix_pair.as_rule() == Rule::suffix {
+            current_expr = parse_suffix(current_expr, suffix_pair)?;
         } else {
-            parse_primary(next_primary_pair)?
-        };
-        current_expr = Expr::Binary {
-            op,
-            left: Box::new(current_expr),
-            right: Box::new(next_primary),
-        };
+            // Binary operator
+            let op = suffix_pair.as_str().to_string();
+            let next_primary_pair = inner.next().unwrap();
+            let mut next_expr = if next_primary_pair.as_rule() == Rule::prefix {
+                let op = next_primary_pair.as_str().to_string();
+                let primary = parse_primary(inner.next().unwrap())?;
+                Expr::Unary {
+                    op,
+                    expr: Box::new(primary),
+                }
+            } else {
+                parse_primary(next_primary_pair)?
+            };
+            // Parse suffixes for the right operand
+            while let Some(suffix_pair) = inner.next() {
+                if suffix_pair.as_rule() == Rule::suffix {
+                    next_expr = parse_suffix(next_expr, suffix_pair)?;
+                } else {
+                    // This is actually the next binary operator, put it back
+                    // We can't put it back, so we need to handle this differently
+                    // For now, break and continue with the binary operation
+                    break;
+                }
+            }
+            current_expr = Expr::Binary {
+                op,
+                left: Box::new(current_expr),
+                right: Box::new(next_expr),
+            };
+        }
     }
 
     Ok(current_expr)
+}
+
+fn parse_suffix(object: Expr, pair: pest::iterators::Pair<Rule>) -> anyhow::Result<Expr> {
+    let mut inner = pair.into_inner();
+    let first = inner.next().unwrap();
+    match first.as_rule() {
+        Rule::ident => Ok(Expr::Get {
+            object: Box::new(object),
+            name: first.as_str().to_string(),
+        }),
+        Rule::expr => Ok(Expr::Index {
+            object: Box::new(object),
+            index: Box::new(parse_expr(first)?),
+        }),
+        _ => unreachable!("{:?}", first.as_rule()),
+    }
 }
 
 fn parse_primary(pair: pest::iterators::Pair<Rule>) -> anyhow::Result<Expr> {

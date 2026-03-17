@@ -18,19 +18,94 @@ pub enum ControlFlow {
 impl Interpreter {
     pub fn new() -> Self {
         let globals = Rc::new(RefCell::new(Environment::new()));
-        Interpreter {
+        let mut interp = Interpreter {
             globals: globals.clone(),
             environment: globals,
-        }
+        };
+        interp.register_builtins();
+        interp
     }
 
-    pub fn interpret(&mut self, statements: &[Stmt]) -> anyhow::Result<()> {
+    pub fn with_env(globals: Rc<RefCell<Environment>>) -> Self {
+        let mut interp = Interpreter {
+            globals: globals.clone(),
+            environment: globals,
+        };
+        interp.register_builtins();
+        interp
+    }
+
+    fn register_builtins(&mut self) {
+        use crate::template;
+        use std::fs;
+
+        self.globals.borrow_mut().define(
+            "print".to_string(),
+            Value::Builtin(|args| {
+                for arg in args {
+                    print!("{} ", arg);
+                }
+                println!();
+                Value::Null
+            }),
+        );
+
+        self.globals.borrow_mut().define(
+            "render".to_string(),
+            Value::Builtin(|args| {
+                if args.len() < 2 {
+                    return Value::Null;
+                }
+                if let (Value::String(tmpl), Value::Map(ctx)) = (&args[0], &args[1]) {
+                    Value::String(template::render(tmpl, ctx))
+                } else {
+                    Value::Null
+                }
+            }),
+        );
+
+        self.globals.borrow_mut().define(
+            "read_file".to_string(),
+            Value::Builtin(|args| {
+                if args.is_empty() {
+                    return Value::Null;
+                }
+                if let Value::String(path) = &args[0] {
+                    match fs::read_to_string(path) {
+                        Ok(s) => Value::String(s),
+                        Err(_) => Value::Null,
+                    }
+                } else {
+                    Value::Null
+                }
+            }),
+        );
+
+        self.globals.borrow_mut().define(
+            "len".to_string(),
+            Value::Builtin(|args| {
+                if args.is_empty() {
+                    return Value::Null;
+                }
+                match &args[0] {
+                    Value::String(s) => Value::Int(s.len() as i64),
+                    Value::List(l) => Value::Int(l.len() as i64),
+                    Value::Map(m) => Value::Int(m.len() as i64),
+                    _ => Value::Int(0),
+                }
+            }),
+        );
+    }
+
+    pub fn interpret(&mut self, statements: &[Stmt]) -> anyhow::Result<Value> {
+        let mut result = Value::Null;
         for stmt in statements {
-            if let ControlFlow::Return(_) = self.execute(stmt)? {
+            if let ControlFlow::Return(v) = self.execute(stmt)? {
+                result = v;
                 break;
             }
         }
-        Ok(())
+        Ok(result)
     }
 
     fn execute(&mut self, stmt: &Stmt) -> anyhow::Result<ControlFlow> {
@@ -171,6 +246,36 @@ impl Interpreter {
                     "-" => val.negate(),
                     "!" => Ok(Value::Bool(!val.is_truthy())),
                     _ => Err(anyhow!("Unknown unary operator '{}'", op)),
+                }
+            }
+            Expr::Get { object, name } => {
+                let obj = self.evaluate(object)?;
+                match obj {
+                    Value::Map(map) => Ok(map.get(name).cloned().unwrap_or(Value::Null)),
+                    _ => Err(anyhow!("Can only access properties on maps")),
+                }
+            }
+            Expr::Index { object, index } => {
+                let obj = self.evaluate(object)?;
+                let idx = self.evaluate(index)?;
+                match (obj, idx) {
+                    (Value::List(list), Value::Int(i)) => {
+                        if i < 0 {
+                            let len = list.len() as i64;
+                            let idx = len + i;
+                            if idx >= 0 && idx < len {
+                                Ok(list[idx as usize].clone())
+                            } else {
+                                Ok(Value::Null)
+                            }
+                        } else if i >= 0 && (i as usize) < list.len() {
+                            Ok(list[i as usize].clone())
+                        } else {
+                            Ok(Value::Null)
+                        }
+                    }
+                    (Value::Map(map), Value::String(key)) => Ok(map.get(&key).cloned().unwrap_or(Value::Null)),
+                    _ => Err(anyhow!("Invalid index operation")),
                 }
             }
             Expr::Call { callee, args } => {

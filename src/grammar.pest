@@ -25,7 +25,13 @@ expr_stmt = { expr ~ ";" }
 
 block = { "{" ~ statement* ~ "}" }
 
-expr = { prefix? ~ primary ~ (bin_op ~ prefix? ~ primary)* }
+expr = { prefix? ~ primary ~ (suffix ~ (suffix)*)? ~ (bin_op ~ prefix? ~ primary ~ (suffix ~ (suffix)*)?)* }
+
+suffix = {
+    "." ~ ident
+    | "[" ~ expr ~ "]"
+}
+
 primary = {
     literal
     | call
