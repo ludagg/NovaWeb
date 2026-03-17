@@ -2,7 +2,7 @@ use crate::ast::{Expr, Stmt};
 use crate::environment::Environment;
 use crate::value::Value;
 use anyhow::anyhow;
-use rusqlite::{Connection, params, types::ToSql};
+use rusqlite::{Connection, types::ToSql};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Mutex;
@@ -256,7 +256,12 @@ impl Interpreter {
 
     fn execute(&mut self, stmt: &Stmt) -> anyhow::Result<ControlFlow> {
         match stmt {
-            Stmt::Let { name, init } => {
+            Stmt::Import { module: _, path: _ } => {
+                // Simplified mock import implementation.
+                // In a full implementation, this would read and parse the module file.
+                Ok(ControlFlow::None)
+            }
+            Stmt::Let { name, type_annotation: _, init } => {
                 let value = self.evaluate(init)?;
                 self.environment.borrow_mut().define(name.clone(), value);
                 Ok(ControlFlow::None)
@@ -321,9 +326,9 @@ impl Interpreter {
                 };
                 Ok(ControlFlow::Return(value))
             }
-            Stmt::FnDecl { name, params, body } => {
+            Stmt::FnDecl { name, params, return_type: _, body } => {
                 let function = Value::Function {
-                    params: params.clone(),
+                    params: params.iter().map(|(n, _)| n.clone()).collect(),
                     body: body.clone(),
                 };
                 self.environment.borrow_mut().define(name.clone(), function);
@@ -401,6 +406,14 @@ impl Interpreter {
                     _ => Err(anyhow!("Can only access properties on maps")),
                 }
             }
+            Expr::OptionalGet { object, name } => {
+                let obj = self.evaluate(object)?;
+                match obj {
+                    Value::Map(map) => Ok(map.get(name).cloned().unwrap_or(Value::Null)),
+                    Value::Null => Ok(Value::Null),
+                    _ => Err(anyhow!("Can only access properties on maps")),
+                }
+            }
             Expr::Index { object, index } => {
                 let obj = self.evaluate(object)?;
                 let idx = self.evaluate(index)?;
@@ -423,6 +436,38 @@ impl Interpreter {
                     (Value::Map(map), Value::String(key)) => Ok(map.get(&key).cloned().unwrap_or(Value::Null)),
                     _ => Err(anyhow!("Invalid index operation")),
                 }
+            }
+            Expr::OptionalIndex { object, index } => {
+                let obj = self.evaluate(object)?;
+                let idx = self.evaluate(index)?;
+                match (obj, idx) {
+                    (Value::List(list), Value::Int(i)) => {
+                        if i < 0 {
+                            let len = list.len() as i64;
+                            let idx = len + i;
+                            if idx >= 0 && idx < len {
+                                Ok(list[idx as usize].clone())
+                            } else {
+                                Ok(Value::Null)
+                            }
+                        } else if i >= 0 && (i as usize) < list.len() {
+                            Ok(list[i as usize].clone())
+                        } else {
+                            Ok(Value::Null)
+                        }
+                    }
+                    (Value::Map(map), Value::String(key)) => Ok(map.get(&key).cloned().unwrap_or(Value::Null)),
+                    (Value::Null, _) => Ok(Value::Null),
+                    _ => Err(anyhow!("Invalid optional index operation")),
+                }
+            }
+            Expr::StringInterpolation(parts) => {
+                let mut result = String::new();
+                for part in parts {
+                    let value = self.evaluate(part)?;
+                    result.push_str(&value.to_string());
+                }
+                Ok(Value::String(result))
             }
             Expr::Call { callee, args } => {
                 let callee_value = self.evaluate(callee)?;

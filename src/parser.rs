@@ -90,11 +90,26 @@ pub fn parse_expression_only(input: &str) -> anyhow::Result<Expr> {
 
 fn parse_statement(pair: pest::iterators::Pair<Rule>) -> anyhow::Result<Stmt> {
     match pair.as_rule() {
+        Rule::import_stmt => {
+            let mut inner = pair.into_inner();
+            let module = inner.next().unwrap().as_str().to_string();
+            let path = inner.next().map(|p| p.into_inner().next().unwrap().as_str().to_string());
+            Ok(Stmt::Import { module, path })
+        }
         Rule::let_stmt => {
             let mut inner = pair.into_inner();
             let name = inner.next().unwrap().as_str().to_string();
-            let init = parse_expr(inner.next().unwrap())?;
-            Ok(Stmt::Let { name, init })
+
+            let mut type_annotation = None;
+            let mut next = inner.next().unwrap();
+
+            if next.as_rule() == Rule::type_annotation {
+                type_annotation = Some(next.as_str().to_string());
+                next = inner.next().unwrap();
+            }
+
+            let init = parse_expr(next)?;
+            Ok(Stmt::Let { name, type_annotation, init })
         }
         Rule::assign_stmt => {
             let mut inner = pair.into_inner();
@@ -148,15 +163,43 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>) -> anyhow::Result<Stmt> {
         }
         Rule::fn_decl => {
             let mut inner = pair.into_inner();
-            let name = inner.next().unwrap().as_str().to_string();
-            let mut params = Vec::new();
+
+            // Skip decorators for now
             let mut next = inner.next().unwrap();
-            while next.as_rule() == Rule::ident {
-                params.push(next.as_str().to_string());
+            while next.as_rule() == Rule::decorator {
                 next = inner.next().unwrap();
             }
+
+            let name = next.as_str().to_string();
+            let mut params = Vec::new();
+
+            next = inner.next().unwrap();
+            while next.as_rule() == Rule::fn_param {
+                let mut param_inner = next.into_inner();
+                let param_name = param_inner.next().unwrap().as_str().to_string();
+                let param_type = param_inner.next().map(|t| t.as_str().to_string());
+                params.push((param_name, param_type));
+                next = inner.next().unwrap();
+            }
+
+            let mut return_type = None;
+            if next.as_rule() == Rule::ident { // Return type part
+                 let mut ret_type_str = next.as_str().to_string();
+                 let mut peek_iter = inner.clone();
+                 while let Some(n) = peek_iter.next() {
+                    if n.as_rule() == Rule::ident {
+                        ret_type_str.push_str(" | ");
+                        ret_type_str.push_str(inner.next().unwrap().as_str());
+                    } else {
+                        break;
+                    }
+                 }
+                 return_type = Some(ret_type_str);
+                 next = inner.next().unwrap();
+            }
+
             let body = parse_block(next)?;
-            Ok(Stmt::FnDecl { name, params, body })
+            Ok(Stmt::FnDecl { name, params, return_type, body })
         }
         Rule::expr_stmt => {
             let expr = parse_expr(pair.into_inner().next().unwrap())?;
@@ -238,15 +281,29 @@ fn parse_suffix(object: Expr, pair: pest::iterators::Pair<Rule>) -> anyhow::Resu
     let mut inner = pair.into_inner();
     let first = inner.next().unwrap();
     match first.as_rule() {
-        Rule::ident => Ok(Expr::Get {
-            object: Box::new(object),
-            name: first.as_str().to_string(),
-        }),
+        Rule::ident => {
+            if suffix_str.starts_with("?.") {
+                Ok(Expr::OptionalGet {
+                    object: Box::new(object),
+                    name: first.as_str().to_string(),
+                })
+            } else {
+                Ok(Expr::Get {
+                    object: Box::new(object),
+                    name: first.as_str().to_string(),
+                })
+            }
+        }
         Rule::expr => {
             // This could be either a call or an index
             // Both have expr as the first element
             // We need to check if there are more expr elements or check the pair's string
-            if suffix_str.starts_with('[') {
+            if suffix_str.starts_with("?[") {
+                Ok(Expr::OptionalIndex {
+                    object: Box::new(object),
+                    index: Box::new(parse_expr(first)?),
+                })
+            } else if suffix_str.starts_with('[') {
                 // This is an index: [expr]
                 Ok(Expr::Index {
                     object: Box::new(object),
@@ -295,6 +352,27 @@ fn parse_literal(pair: pest::iterators::Pair<Rule>) -> anyhow::Result<Expr> {
         Rule::string => {
             let inner = pair.into_inner().next().unwrap().as_str();
             Ok(Expr::Literal(Value::String(inner.to_string())))
+        }
+        Rule::fstring => {
+            let mut parts = Vec::new();
+            for inner in pair.into_inner() {
+                match inner.as_rule() {
+                    Rule::fstring_inner => {
+                        let inner_most = inner.into_inner().next().unwrap();
+                        match inner_most.as_rule() {
+                            Rule::fstring_text => {
+                                parts.push(Expr::Literal(Value::String(inner_most.as_str().to_string())));
+                            }
+                            Rule::fstring_expr => {
+                                parts.push(parse_expr(inner_most.into_inner().next().unwrap())?);
+                            }
+                            _ => unreachable!("{:?}", inner_most.as_rule()),
+                        }
+                    }
+                    _ => unreachable!("{:?}", inner.as_rule()),
+                }
+            }
+            Ok(Expr::StringInterpolation(parts))
         }
         Rule::list => {
             let mut elements = Vec::new();

@@ -1,7 +1,6 @@
 use crate::ast::Expr;
 use crate::interpreter::Interpreter;
 use crate::value::Value;
-use anyhow::anyhow;
 use pest::Parser;
 use pest_derive::Parser;
 use std::collections::HashMap;
@@ -13,7 +12,7 @@ pub struct TemplateParser;
 #[derive(Debug, Clone)]
 pub enum TemplateNode {
     Text(String),
-    Expr(Expr),
+    Expr(Expr, Vec<String>), // Expr and list of filters
     If {
         condition: Expr,
         then_nodes: Vec<TemplateNode>,
@@ -58,7 +57,14 @@ fn parse_node(pair: pest::iterators::Pair<Rule>) -> anyhow::Result<TemplateNode>
         Rule::expr_node => {
             let mut inner = pair.into_inner();
             let expr_pair = inner.next().unwrap();
-            Ok(TemplateNode::Expr(parse_template_expr(expr_pair)?))
+            let expr = parse_template_expr(expr_pair)?;
+
+            let mut filters = Vec::new();
+            for filter_pair in inner {
+                filters.push(filter_pair.as_str().to_string());
+            }
+
+            Ok(TemplateNode::Expr(expr, filters))
         }
         Rule::if_node => {
             let mut inner = pair.into_inner();
@@ -157,10 +163,34 @@ pub fn render_nodes(nodes: &[TemplateNode], context: &HashMap<String, Value>) ->
 fn render_node(node: &TemplateNode, interp: &mut Interpreter) -> String {
     match node {
         TemplateNode::Text(s) => s.clone(),
-        TemplateNode::Expr(expr) => match interp.evaluate(expr) {
-            Ok(value) => value.to_string(),
-            Err(_) => String::new(),
-        },
+        TemplateNode::Expr(expr, filters) => {
+            match interp.evaluate(expr) {
+                Ok(mut value) => {
+                    for filter in filters {
+                        match filter.as_str() {
+                            "upper" => {
+                                if let Value::String(s) = value {
+                                    value = Value::String(s.to_uppercase());
+                                }
+                            }
+                            "lower" => {
+                                if let Value::String(s) = value {
+                                    value = Value::String(s.to_lowercase());
+                                }
+                            }
+                            "trim" => {
+                                if let Value::String(s) = value {
+                                    value = Value::String(s.trim().to_string());
+                                }
+                            }
+                            _ => {} // Ignore unknown filters for now
+                        }
+                    }
+                    value.to_string()
+                }
+                Err(_) => String::new(),
+            }
+        }
         TemplateNode::If {
             condition,
             then_nodes,

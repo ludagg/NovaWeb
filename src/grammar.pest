@@ -4,7 +4,8 @@ COMMENT    = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" | "//" ~ (!"\n" ~ ANY)* }
 program = { SOI ~ statement* ~ EOI }
 
 statement = {
-    let_stmt
+    import_stmt
+    | let_stmt
     | assign_stmt
     | if_stmt
     | while_stmt
@@ -14,21 +15,29 @@ statement = {
     | expr_stmt
 }
 
-let_stmt = { "let" ~ ident ~ "=" ~ expr ~ ";" }
+type_annotation = { ":" ~ ident ~ ("|" ~ ident)* ~ ("[" ~ ident ~ ("," ~ ident)* ~ "]")? }
+
+import_stmt = { "import" ~ ident ~ ("from" ~ string)? ~ ";" }
+let_stmt = { "let" ~ ident ~ type_annotation? ~ "=" ~ expr ~ ";" }
 assign_stmt = { ident ~ "=" ~ expr ~ ";" }
 if_stmt = { "if" ~ expr ~ block ~ ("else" ~ (if_stmt | block))? }
 while_stmt = { "while" ~ expr ~ block }
 for_stmt = { "for" ~ ident ~ "in" ~ expr ~ block }
 return_stmt = { "return" ~ expr? ~ ";" }
-fn_decl = { "fn" ~ ident ~ "(" ~ (ident ~ ("," ~ ident)*)? ~ ")" ~ block }
+fn_param = { ident ~ type_annotation? }
+fn_decl = { decorator* ~ "fn" ~ ident ~ "(" ~ (fn_param ~ ("," ~ fn_param)*)? ~ ")" ~ ("->" ~ ident ~ ("|" ~ ident)*)? ~ block }
 expr_stmt = { expr ~ ";" }
+
+decorator = { "@" ~ ident ~ "(" ~ (expr ~ ("," ~ expr)*)? ~ ")" }
 
 block = { "{" ~ statement* ~ "}" }
 
 expr = { prefix? ~ primary ~ (suffix ~ (suffix)*)? ~ (bin_op ~ prefix? ~ primary ~ (suffix ~ (suffix)*)?)* }
 
 suffix = {
-    "." ~ ident
+    "?." ~ ident
+    | "." ~ ident
+    | "?[" ~ expr ~ "]"
     | "[" ~ expr ~ "]"
     | "(" ~ (expr ~ ("," ~ expr)*)? ~ ")"
 }
@@ -46,6 +55,7 @@ literal = {
     float
     | int
     | bool
+    | fstring
     | string
     | list
     | map
@@ -55,8 +65,15 @@ literal = {
 int = @{ ASCII_DIGIT+ }
 float = @{ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* }
 bool = { "true" | "false" }
+
 string = ${ "\"" ~ inner_str ~ "\"" }
 inner_str = @{ (!("\"" | "\\") ~ ANY)* ~ (escape ~ inner_str)? }
+
+fstring = ${ "f\"" ~ fstring_inner* ~ "\"" }
+fstring_inner = { fstring_text | fstring_expr }
+fstring_text = @{ (!("\"" | "{" | "\\") ~ ANY)+ ~ (escape ~ fstring_text)? }
+fstring_expr = !{ "{" ~ expr ~ "}" }
+
 escape = @{ "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | unicode) }
 unicode = @{ "u" ~ ASCII_HEX_DIGIT{4} }
 
