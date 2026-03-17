@@ -1,11 +1,9 @@
 use crate::interpreter::Interpreter;
 use crate::parser;
 use crate::value::Value;
-use anyhow::anyhow;
 use axum::{
-    body::Body,
-    extract::{Path, Request as AxumRequest, State},
-    http::{HeaderMap, HeaderValue, StatusCode},
+    extract::{Path, State},
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
     Router,

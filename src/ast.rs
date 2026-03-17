@@ -23,16 +23,30 @@ pub enum Expr {
         object: Box<Expr>,
         name: String,
     },
+    OptionalGet {
+        object: Box<Expr>,
+        name: String,
+    },
     Index {
         object: Box<Expr>,
         index: Box<Expr>,
     },
+    OptionalIndex {
+        object: Box<Expr>,
+        index: Box<Expr>,
+    },
+    StringInterpolation(Vec<Expr>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
+    Import {
+        module: String,
+        path: Option<String>,
+    },
     Let {
         name: String,
+        type_annotation: Option<String>,
         init: Expr,
     },
     Assign {
@@ -56,7 +70,8 @@ pub enum Stmt {
     Return(Option<Expr>),
     FnDecl {
         name: String,
-        params: Vec<String>,
+        params: Vec<(String, Option<String>)>,
+        return_type: Option<String>,
         body: Vec<Stmt>,
     },
     Expr(Expr),

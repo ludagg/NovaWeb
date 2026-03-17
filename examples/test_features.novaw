@@ -1,0 +1,12 @@
+let name: str = "World";
+print(f"Hello, {name}!");
+
+let obj = { "test": "passed" };
+print(obj?.test);
+print(obj?.missing);
+
+let template = "Name: {{ user.name | upper }}";
+let ctx = { "user": { "name": "alice" } };
+print(render(template, ctx));
+
+import math;

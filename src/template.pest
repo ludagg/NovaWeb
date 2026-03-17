@@ -10,7 +10,7 @@ node = {
 
 text = @{ !("{{" | "{%") ~ ANY }
 
-expr_node = { "{{" ~ expr ~ "}}" }
+expr_node = { "{{" ~ expr ~ ("|" ~ ident)* ~ "}}" }
 
 if_node = {
     "{%" ~ "if" ~ expr ~ "%}"
@@ -30,7 +30,7 @@ for_node = {
 }
 
 // Use the same expression grammar as the main language, but we'll import it
-expr = { SOI ~ (primary ~ (suffix ~ (suffix)*)? ~ (bin_op ~ primary ~ (suffix ~ (suffix)*)?)*)? ~ EOI }
+expr = { (primary ~ (suffix ~ (suffix)*)? ~ (bin_op ~ primary ~ (suffix ~ (suffix)*)?)*)? }
 
 suffix = {
     "." ~ ident
@@ -49,6 +49,7 @@ literal = {
     float
     | int
     | bool
+    | fstring
     | string
     | list
     | null
@@ -57,8 +58,15 @@ literal = {
 int = @{ ASCII_DIGIT+ }
 float = @{ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* }
 bool = { "true" | "false" }
+
 string = ${ "\"" ~ inner_str ~ "\"" }
 inner_str = @{ (!("\"" | "\\") ~ ANY)* ~ (escape ~ inner_str)? }
+
+fstring = ${ "f\"" ~ fstring_inner* ~ "\"" }
+fstring_inner = { fstring_text | fstring_expr }
+fstring_text = @{ (!("\"" | "{" | "\\") ~ ANY)+ ~ (escape ~ fstring_text)? }
+fstring_expr = !{ "{" ~ expr ~ "}" }
+
 escape = @{ "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | unicode) }
 unicode = @{ "u" ~ ASCII_HEX_DIGIT{4} }
 
